@@ -109,11 +109,11 @@ public sealed class Wrap
             throw new ArgumentException($"Variable {variable} not found in WRAP data for {_ac}.");
 
         return new WrapParameter(
-            Default: row.Optimum,
-            Minimum: row.Minimum,
-            Maximum: row.Maximum,
-            StatisticalModel: row.Model,
-            StatisticalModelParameters: row.Parameters);
+            @default: row.Optimum,
+            minimum: row.Minimum,
+            maximum: row.Maximum,
+            statisticalModel: row.Model,
+            statisticalModelParameters: row.Parameters);
     }
 
     public WrapParameter TakeoffSpeed => Get("to_v_lof");
@@ -158,25 +158,63 @@ public sealed class Wrap
     public WrapParameter LandingBrakingDistance => Get("ld_d_brk");
     public WrapParameter LandingBrakingAcceleration => Get("ld_acc_brk");
 
-    internal readonly struct WrapRow(
-        string Variable,
-        string FlightPhase,
-        string Name,
-        double Optimum,
-        double Minimum,
-        double Maximum,
-        string Model,
-        double[] Parameters);
+}
 
-    /// <summary>
-    /// Strongly-typed equivalent of the Python dict returned from WRAP._get_var.
-    /// </summary>
-    public readonly struct WrapParameter(
-        double Default,
-        double Minimum,
-        double Maximum,
-        string StatisticalModel,
-        IReadOnlyList<double> StatisticalModelParameters);
+internal readonly struct WrapRow
+{
+    public string Variable { get; }
+    public string FlightPhase { get; }
+    public string Name { get; }
+    public double Optimum { get; }
+    public double Minimum { get; }
+    public double Maximum { get; }
+    public string Model { get; }
+    public double[] Parameters { get; }
 
+    public WrapRow(
+        string variable,
+        string flightPhase,
+        string name,
+        double optimum,
+        double minimum,
+        double maximum,
+        string model,
+        double[] parameters)
+    {
+        Variable = variable;
+        FlightPhase = flightPhase;
+        Name = name;
+        Optimum = optimum;
+        Minimum = minimum;
+        Maximum = maximum;
+        Model = model;
+        Parameters = parameters;
+    }
+}
+
+/// <summary>
+/// Strongly-typed equivalent of the Python dict returned from WRAP._get_var.
+/// </summary>
+public readonly struct WrapParameter
+{
+    public double Default { get; }
+    public double Minimum { get; }
+    public double Maximum { get; }
+    public string StatisticalModel { get; }
+    public IReadOnlyList<double> StatisticalModelParameters { get; }
+
+    public WrapParameter(
+        double @default,
+        double minimum,
+        double maximum,
+        string statisticalModel,
+        IReadOnlyList<double> statisticalModelParameters)
+    {
+        Default = @default;
+        Minimum = minimum;
+        Maximum = maximum;
+        StatisticalModel = statisticalModel;
+        StatisticalModelParameters = statisticalModelParameters;
+    }
 }
 

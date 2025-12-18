@@ -17,10 +17,10 @@ public class WrapTests
 
         foreach (var prop in props)
         {
-            if (prop.PropertyType != typeof(Wrap.WrapParameter))
+            if (prop.PropertyType != typeof(WrapParameter))
                 continue;
 
-            var value = (Wrap.WrapParameter)prop.GetValue(wrap)!;
+            var value = (WrapParameter)prop.GetValue(wrap)!;
 
             Console.WriteLine($"{prop.Name}:");
             Console.WriteLine($"  Default: {value.Default}");
