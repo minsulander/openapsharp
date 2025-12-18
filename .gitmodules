@@ -1,0 +1,3 @@
+[submodule "openap"]
+	path = openap
+	url = https://github.com/TUDelft-CNS-ATM/openap
