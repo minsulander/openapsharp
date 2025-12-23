@@ -5,19 +5,16 @@ namespace OpenApSharp;
 /// <summary>
 /// C# translation of openap.emission.Emission, scalar-only.
 /// </summary>
-public sealed class Emission
-{
+public sealed class Emission {
     private readonly Aircraft _aircraft;
     private readonly Engine _engine;
     private readonly int _engineCount;
 
-    public Emission(string ac, string? eng = null, bool useSynonym = false)
-    {
+    public Emission(string ac, string? eng = null, bool useSynonym = false) {
         _aircraft = Prop.Aircraft(ac, useSynonym);
         _engineCount = _aircraft.Engine?.Number ?? 1;
 
-        if (string.IsNullOrWhiteSpace(eng))
-        {
+        if (string.IsNullOrWhiteSpace(eng)) {
             eng = _aircraft.Engine?.Default
                   ?? throw new InvalidOperationException(
                       $"Default engine not specified for aircraft {ac}.");
@@ -29,8 +26,7 @@ public sealed class Emission
     private (double FfSeaLevelPerEngine, double Ratio) ToSeaLevelEquivalent(
         double ffacKgPerSecondAllEngines,
         double tasKnots,
-        double altitudeFeet)
-    {
+        double altitudeFeet) {
         // Convert to Mach / ISA parameters
         var M = Aero.TasToMachFromKnots(tasKnots, altitudeFeet);
         var beta = Math.Exp(0.2 * (M * M));
@@ -58,8 +54,7 @@ public sealed class Emission
     public double Sox(double fuelFlowKgPerSecondAllEngines)
         => fuelFlowKgPerSecondAllEngines * 1.2;
 
-    public double Nox(double ffacKgPerSecondAllEngines, double tasKnots, double altitudeFeet = 0)
-    {
+    public double Nox(double ffacKgPerSecondAllEngines, double tasKnots, double altitudeFeet = 0) {
         var (ffSlPerEngine, ratio) = ToSeaLevelEquivalent(ffacKgPerSecondAllEngines, tasKnots, altitudeFeet);
 
         var ff = new[]
@@ -81,8 +76,7 @@ public sealed class Emission
         return noxRate;
     }
 
-    public double Co(double ffacKgPerSecondAllEngines, double tasKnots, double altitudeFeet = 0)
-    {
+    public double Co(double ffacKgPerSecondAllEngines, double tasKnots, double altitudeFeet = 0) {
         var (ffSlPerEngine, ratio) = ToSeaLevelEquivalent(ffacKgPerSecondAllEngines, tasKnots, altitudeFeet);
 
         var ff = new[]
@@ -102,8 +96,7 @@ public sealed class Emission
         return coRate;
     }
 
-    public double Hc(double ffacKgPerSecondAllEngines, double tasKnots, double altitudeFeet = 0)
-    {
+    public double Hc(double ffacKgPerSecondAllEngines, double tasKnots, double altitudeFeet = 0) {
         var (ffSlPerEngine, ratio) = ToSeaLevelEquivalent(ffacKgPerSecondAllEngines, tasKnots, altitudeFeet);
 
         var ff = new[]
@@ -126,20 +119,17 @@ public sealed class Emission
     /// 1D linear interpolation, equivalent to numpy.interp.
     /// xArray and yArray must be of equal length and sorted in ascending x.
     /// </summary>
-    private static double Interp(double x, double[] xArray, double[] yArray)
-    {
+    private static double Interp(double x, double[] xArray, double[] yArray) {
         if (xArray.Length != yArray.Length || xArray.Length == 0)
             throw new ArgumentException("Invalid interpolation arrays.");
 
         if (x <= xArray[0]) return yArray[0];
         if (x >= xArray[^1]) return yArray[^1];
 
-        for (var i = 0; i < xArray.Length - 1; i++)
-        {
+        for (var i = 0; i < xArray.Length - 1; i++) {
             var x0 = xArray[i];
             var x1 = xArray[i + 1];
-            if (x >= x0 && x <= x1)
-            {
+            if (x >= x0 && x <= x1) {
                 var t = (x - x0) / (x1 - x0);
                 return yArray[i] + t * (yArray[i + 1] - yArray[i]);
             }

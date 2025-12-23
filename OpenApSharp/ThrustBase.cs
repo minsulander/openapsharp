@@ -5,12 +5,10 @@ namespace OpenApSharp;
 /// <summary>
 /// Base class for thrust models, mirroring openap.base.ThrustBase.
 /// </summary>
-public abstract class ThrustBase
-{
+public abstract class ThrustBase {
     public string AircraftCode { get; }
 
-    protected ThrustBase(string ac)
-    {
+    protected ThrustBase(string ac) {
         AircraftCode = ac.ToUpperInvariant();
     }
 

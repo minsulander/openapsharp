@@ -5,8 +5,7 @@ namespace OpenApSharp;
 /// <summary>
 /// C# translation of openap.mass.from_range, scalar-only.
 /// </summary>
-public static class Mass
-{
+public static class Mass {
     /// <summary>
     /// Compute aircraft mass based on range, load factor, and fraction settings.
     /// distanceNm in nautical miles. Returns mass in kg or MTOW fraction.
@@ -16,8 +15,7 @@ public static class Mass
         double distanceNm,
         double loadFactor = 0.8,
         bool returnFraction = false,
-        bool useSynonym = false)
-    {
+        bool useSynonym = false) {
         var ac = Prop.Aircraft(typeCode, useSynonym);
 
         var cruiseRangeNm = ac.Cruise?.Range ?? throw new InvalidOperationException(

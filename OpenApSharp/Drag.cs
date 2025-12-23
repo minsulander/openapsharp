@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CsvHelper;
+using CsvHelper.Configuration;
 using System.Globalization;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -14,8 +15,7 @@ namespace OpenApSharp;
 /// Inputs: mass (kg), TAS (kt), altitude (ft), vertical speed (ft/min), flap angle (deg).
 /// Output: total drag (N).
 /// </summary>
-public sealed class Drag : DragBase
-{
+public sealed class Drag : DragBase {
     private static readonly IDeserializer YamlDeserializer =
         new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
@@ -27,15 +27,13 @@ public sealed class Drag : DragBase
     private readonly bool _waveDrag;
 
     public Drag(string ac, bool waveDrag = false, bool useSynonym = false)
-        : base(ac)
-    {
+        : base(ac) {
         _aircraft = Prop.Aircraft(ac, useSynonym);
         _polar = LoadDragModel(ac, useSynonym);
         _waveDrag = waveDrag;
     }
 
-    private static DragPolar LoadDragModel(string ac, bool useSynonym)
-    {
+    private static DragPolar LoadDragModel(string ac, bool useSynonym) {
         ac = ac.ToLowerInvariant();
 
         var dragDir = OpenApDataPathResolver.GetPath("dragpolar");
@@ -44,19 +42,18 @@ public sealed class Drag : DragBase
         string? selectedCode = null;
 
         // Check direct availability
-        if (File.Exists(Path.Combine(dragDir, $"{ac}.yml")))
-        {
+        if (File.Exists(Path.Combine(dragDir, $"{ac}.yml"))) {
             selectedCode = ac;
-        }
-        else
-        {
+        } else {
             if (!useSynonym || !File.Exists(synonymFile))
                 throw new InvalidOperationException(
                     $"Drag polar for {ac} not available. " +
                     "Enable 'useSynonym' to search synonyms.");
 
             using var reader = new StreamReader(synonymFile);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) {
+                PrepareHeaderForMatch = args => args.Header.ToLower()
+            });
             var synonyms = csv.GetRecords<AircraftSynonym>().ToList();
             var match = synonyms.FirstOrDefault(s =>
                 string.Equals(s.Orig, ac, StringComparison.OrdinalIgnoreCase));
@@ -73,15 +70,13 @@ public sealed class Drag : DragBase
         return YamlDeserializer.Deserialize<DragPolar>(yaml);
     }
 
-    public override double Clean(double massKg, double tasKnots, double altitudeFeet, double verticalSpeedFpm = 0)
-    {
+    public override double Clean(double massKg, double tasKnots, double altitudeFeet, double verticalSpeedFpm = 0) {
         var cd0 = _polar.Clean.Cd0;
         var k = _polar.Clean.K;
 
         double dCdw = 0.0;
 
-        if (_waveDrag)
-        {
+        if (_waveDrag) {
             var mach = Aero.TasToMachFromKnots(tasKnots, altitudeFeet);
             var (cl, qS) = ComputeLiftCoefficient(massKg, tasKnots, altitudeFeet, verticalSpeedFpm);
 
@@ -111,8 +106,7 @@ public sealed class Drag : DragBase
         double altitudeFeet,
         double flapAngleDeg,
         double verticalSpeedFpm = 0,
-        bool landingGear = false)
-    {
+        bool landingGear = false) {
         var cd0 = _polar.Clean.Cd0;
         var k = _polar.Clean.K;
 
@@ -126,14 +120,11 @@ public sealed class Drag : DragBase
         var deltaCdFlap = lambdaF * Math.Pow(cfc, 1.38) * sfS * Math.Pow(Math.Sin(flapRad), 2.0);
 
         double deltaCdGear;
-        if (landingGear)
-        {
+        if (landingGear) {
             var mtow = _aircraft.Limits?.MTOW ?? 0.0;
             var wingArea = _aircraft.Wing?.Area ?? 1.0;
             deltaCdGear = mtow * Aero.G0 / wingArea * 3.16e-5 * Math.Pow(mtow, -0.215);
-        }
-        else
-        {
+        } else {
             deltaCdGear = 0.0;
         }
 
@@ -145,12 +136,9 @@ public sealed class Drag : DragBase
                                  $"Aircraft {AircraftCode} has no engine installation data.");
 
         double deltaEFlap;
-        if (string.Equals(engineInstall.Mount, "rear", StringComparison.OrdinalIgnoreCase))
-        {
+        if (string.Equals(engineInstall.Mount, "rear", StringComparison.OrdinalIgnoreCase)) {
             deltaEFlap = 0.0046 * flapAngleDeg;
-        }
-        else
-        {
+        } else {
             deltaEFlap = 0.0026 * flapAngleDeg;
         }
 
@@ -166,8 +154,7 @@ public sealed class Drag : DragBase
         double massKg,
         double tasKnots,
         double altitudeFeet,
-        double verticalSpeedFpm = 0)
-    {
+        double verticalSpeedFpm = 0) {
         var v = tasKnots * Aero.Kts;
         var h = altitudeFeet * Aero.Ft;
         var vs = verticalSpeedFpm * Aero.Fpm;
@@ -187,8 +174,7 @@ public sealed class Drag : DragBase
         double altitudeFeet,
         double cd0,
         double k,
-        double verticalSpeedFpm)
-    {
+        double verticalSpeedFpm) {
         var (cl, qS) = ComputeLiftCoefficient(massKg, tasKnots, altitudeFeet, verticalSpeedFpm);
         var cd = cd0 + k * cl * cl;
         var D = cd * qS;
@@ -196,21 +182,18 @@ public sealed class Drag : DragBase
     }
 }
 
-public sealed class DragPolar
-{
+public sealed class DragPolar {
     public DragPolarClean Clean { get; set; } = new();
     public DragPolarFlaps Flaps { get; set; } = new();
 }
 
-public sealed class DragPolarClean
-{
+public sealed class DragPolarClean {
     public double Cd0 { get; set; }
     public double K { get; set; }
     public double E { get; set; }
 }
 
-public sealed class DragPolarFlaps
-{
+public sealed class DragPolarFlaps {
     public double LambdaF { get; set; }
 
     // Mapped from "cf/c"

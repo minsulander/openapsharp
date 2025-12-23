@@ -6,8 +6,7 @@ namespace OpenApSharp;
 /// Simplified two-shaft turbofan thrust model, ported from openap.thrust.Thrust.
 /// Inputs: TAS in knots, altitude in feet, ROC in ft/min. Output: total thrust (N).
 /// </summary>
-public sealed class Thrust : ThrustBase
-{
+public sealed class Thrust : ThrustBase {
     private readonly double _cruiseAltFeet;
     private readonly double _engBpr;
     private readonly double _engMaxThrust;
@@ -15,16 +14,14 @@ public sealed class Thrust : ThrustBase
     private readonly double _cruiseMach;
     private readonly double _engCruiseThrust;
 
-    public Thrust(string ac, string? eng = null, bool forceEngine = false)
-        : base(ac)
-    {
-        var aircraft = Prop.Aircraft(ac);
+    public Thrust(string ac, string? eng = null, bool forceEngine = false, bool useSynonym = false)
+        : base(ac) {
+        var aircraft = Prop.Aircraft(ac, useSynonym);
         var engineInstall = aircraft.Engine
                              ?? throw new InvalidOperationException(
                                  $"Aircraft {ac} has no engine installation data.");
 
-        if (string.IsNullOrWhiteSpace(eng))
-        {
+        if (string.IsNullOrWhiteSpace(eng)) {
             eng = engineInstall.Default
                    ?? throw new InvalidOperationException(
                        $"Default engine not specified for aircraft {ac}.");
@@ -33,18 +30,14 @@ public sealed class Thrust : ThrustBase
         var engine = Prop.Engine(eng.ToUpperInvariant());
 
         // Validate engine options similar to Python implementation.
-        var engOptions = engineInstall.Options is { Count: > 0 }
-            ? engineInstall.Options.Values.ToArray()
-            : Array.Empty<string>();
+        var engOptions = engineInstall.GetOptionValues();
 
-        if (!forceEngine && engOptions.Length > 0)
-        {
+        if (!forceEngine && engOptions.Length > 0) {
             var match = Array.Exists(
                 engOptions,
                 opt => engine.Name.Contains(opt, StringComparison.OrdinalIgnoreCase));
 
-            if (!match)
-            {
+            if (!match) {
                 throw new ArgumentException(
                     $"Engine {eng} and aircraft {ac} mismatch. " +
                     $"Available engines for {ac} are [{string.Join(", ", engOptions)}]");
@@ -61,13 +54,10 @@ public sealed class Thrust : ThrustBase
         _engMaxThrust = engine.MaxThrust;
         _engNumber = engineInstall.Number;
 
-        if (engine.CruiseMach > 0)
-        {
+        if (engine.CruiseMach > 0) {
             _cruiseMach = engine.CruiseMach;
             _engCruiseThrust = engine.CruiseThrust;
-        }
-        else
-        {
+        } else {
             _cruiseMach = aircraft.Cruise?.Mach
                           ?? throw new InvalidOperationException(
                               $"Cruise Mach not specified for aircraft {ac}.");
@@ -75,8 +65,7 @@ public sealed class Thrust : ThrustBase
         }
     }
 
-    public override double Takeoff(double tasKnots, double altitudeFeet)
-    {
+    public override double Takeoff(double tasKnots, double altitudeFeet) {
         // Flight Mach number at sea level
         var mach = Aero.TasToMach(tasKnots * Aero.Kts, 0.0);
 
@@ -105,8 +94,7 @@ public sealed class Thrust : ThrustBase
         return F;
     }
 
-    public override double Climb(double tasKnots, double altitudeFeet, double rateOfClimbFpm)
-    {
+    public override double Climb(double tasKnots, double altitudeFeet, double rateOfClimbFpm) {
         var roc = Math.Abs(rateOfClimbFpm);
         var h = altitudeFeet * Aero.Ft;
         var tas = Math.Max(10.0, tasKnots);
@@ -138,16 +126,11 @@ public sealed class Thrust : ThrustBase
         var ratioSeg1 = m * (p / pcr) + (F10 / Fcr - m * (p10 / pcr)); // Eq. 19
 
         double ratio;
-        if (altitudeFeet > 30000.0)
-        {
+        if (altitudeFeet > 30000.0) {
             ratio = ratioSeg3;
-        }
-        else if (altitudeFeet > 10000.0)
-        {
+        } else if (altitudeFeet > 10000.0) {
             ratio = ratioSeg2;
-        }
-        else
-        {
+        } else {
             ratio = ratioSeg1;
         }
 

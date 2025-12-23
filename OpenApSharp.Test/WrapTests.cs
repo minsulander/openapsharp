@@ -3,11 +3,9 @@ using NUnit.Framework;
 
 namespace OpenApSharp.Test;
 
-public class WrapTests
-{
+public class WrapTests {
     [Test]
-    public void PrintAllWrapParametersForA320()
-    {
+    public void PrintAllWrapParametersForA320() {
         var wrap = new Wrap("A320");
 
         // Enumerate all public properties of type WrapParameter and print them.
@@ -15,8 +13,7 @@ public class WrapTests
             System.Reflection.BindingFlags.Instance |
             System.Reflection.BindingFlags.Public);
 
-        foreach (var prop in props)
-        {
+        foreach (var prop in props) {
             if (prop.PropertyType != typeof(WrapParameter))
                 continue;
 

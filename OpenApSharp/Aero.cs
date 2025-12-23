@@ -7,8 +7,7 @@ namespace OpenApSharp;
 /// ported from openap.extra.aero.
 /// All altitudes are in meters, speeds in m/s unless stated otherwise.
 /// </summary>
-public static class Aero
-{
+public static class Aero {
     // Unit conversion factors
     public const double Kts = 0.514444;   // knot -> m/s
     public const double Ft = 0.3048;      // ft -> m
@@ -27,8 +26,7 @@ public static class Aero
     /// <summary>
     /// Returns (pressure, density, temperature) at altitude h (meters) with optional delta-T.
     /// </summary>
-    public static (double Pressure, double Density, double Temperature) Atmos(double h, double dT = 0)
-    {
+    public static (double Pressure, double Density, double Temperature) Atmos(double h, double dT = 0) {
         dT = Math.Max(-15, Math.Min(15, dT));
         var t0Shift = T0 + dT;
 
@@ -46,26 +44,22 @@ public static class Aero
 
     public static double Temperature(double h, double dT = 0) => Atmos(h, dT).Temperature;
 
-    public static double SoundSpeed(double h, double dT = 0)
-    {
+    public static double SoundSpeed(double h, double dT = 0) {
         var T = Temperature(h, dT);
         return Math.Sqrt(Gamma * R * T);
     }
 
-    public static double TasToMach(double vTas, double h, double dT = 0)
-    {
+    public static double TasToMach(double vTas, double h, double dT = 0) {
         var a = SoundSpeed(h, dT);
         return vTas / a;
     }
 
-    public static double MachToTas(double mach, double h, double dT = 0)
-    {
+    public static double MachToTas(double mach, double h, double dT = 0) {
         var a = SoundSpeed(h, dT);
         return mach * a;
     }
 
-    public static double TasToCas(double vTas, double h, double dT = 0)
-    {
+    public static double TasToCas(double vTas, double h, double dT = 0) {
         var (p, rho, _) = Atmos(h, dT);
         var qdyn = p * (Math.Pow(1.0 + rho * vTas * vTas / (7.0 * p), 3.5) - 1.0);
         var vCas = Math.Sqrt(7.0 * P0 / Rho0 * (Math.Pow(qdyn / P0 + 1.0, 2.0 / 7.0) - 1.0));
@@ -78,8 +72,7 @@ public static class Aero
     public static double TasToCasFromKnots(double tasKnots, double altitudeFeet)
         => TasToCas(tasKnots * Kts, altitudeFeet * Ft);
 
-    public static double MachToCas(double mach, double h, double dT = 0)
-    {
+    public static double MachToCas(double mach, double h, double dT = 0) {
         var vTas = MachToTas(mach, h, dT);
         return TasToCas(vTas, h, dT);
     }

@@ -10,13 +10,11 @@ namespace OpenApSharp;
 /// <summary>
 /// C# translation of openap.kinematic.WRAP: provides access to the WRAP kinematic model.
 /// </summary>
-public sealed class Wrap
-{
+public sealed class Wrap {
     private readonly string _ac;
     private readonly List<WrapRow> _rows;
 
-    public Wrap(string ac, bool useSynonym = true)
-    {
+    public Wrap(string ac, bool useSynonym = true) {
         _ac = ac.ToLowerInvariant();
 
         var wrapDir = OpenApDataPathResolver.GetPath("wrap");
@@ -28,8 +26,7 @@ public sealed class Wrap
 
         var code = _ac;
 
-        if (!available.Contains(code))
-        {
+        if (!available.Contains(code)) {
             if (!useSynonym)
                 throw new ArgumentException($"Kinematic model for {ac} not available.");
 
@@ -52,15 +49,13 @@ public sealed class Wrap
         _rows = ParseWrapFile(path);
     }
 
-    private static List<WrapRow> ParseWrapFile(string path)
-    {
+    private static List<WrapRow> ParseWrapFile(string path) {
         var lines = File.ReadAllLines(path);
         var result = new List<WrapRow>();
 
         // First line is header, subsequent lines are fixed-width data.
         // We know the layout from A320.txt: columns are separated by at least two spaces.
-        for (var i = 1; i < lines.Length; i++)
-        {
+        for (var i = 1; i < lines.Length; i++) {
             var line = lines[i];
             if (string.IsNullOrWhiteSpace(line))
                 continue;
@@ -101,8 +96,7 @@ public sealed class Wrap
         return result;
     }
 
-    private WrapParameter Get(string variable)
-    {
+    private WrapParameter Get(string variable) {
         var row = _rows.FirstOrDefault(r =>
             string.Equals(r.Variable, variable, StringComparison.OrdinalIgnoreCase));
         if (row.Variable == null)
@@ -160,8 +154,7 @@ public sealed class Wrap
 
 }
 
-internal readonly struct WrapRow
-{
+internal readonly struct WrapRow {
     public string Variable { get; }
     public string FlightPhase { get; }
     public string Name { get; }
@@ -179,8 +172,7 @@ internal readonly struct WrapRow
         double minimum,
         double maximum,
         string model,
-        double[] parameters)
-    {
+        double[] parameters) {
         Variable = variable;
         FlightPhase = flightPhase;
         Name = name;
@@ -195,8 +187,7 @@ internal readonly struct WrapRow
 /// <summary>
 /// Strongly-typed equivalent of the Python dict returned from WRAP._get_var.
 /// </summary>
-public readonly struct WrapParameter
-{
+public readonly struct WrapParameter {
     public double Default { get; }
     public double Minimum { get; }
     public double Maximum { get; }
@@ -208,8 +199,7 @@ public readonly struct WrapParameter
         double minimum,
         double maximum,
         string statisticalModel,
-        IReadOnlyList<double> statisticalModelParameters)
-    {
+        IReadOnlyList<double> statisticalModelParameters) {
         Default = @default;
         Minimum = minimum;
         Maximum = maximum;

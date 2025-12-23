@@ -3,12 +3,10 @@ namespace OpenApSharp;
 /// <summary>
 /// Base class for drag models, mirroring openap.base.DragBase.
 /// </summary>
-public abstract class DragBase
-{
+public abstract class DragBase {
     public string AircraftCode { get; }
 
-    protected DragBase(string ac)
-    {
+    protected DragBase(string ac) {
         AircraftCode = ac.ToUpperInvariant();
     }
 

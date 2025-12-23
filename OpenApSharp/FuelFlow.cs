@@ -10,8 +10,7 @@ namespace OpenApSharp;
 /// <summary>
 /// C# translation of openap.fuel.FuelFlow, scalar-only (no ndarrayconvert).
 /// </summary>
-public sealed class FuelFlow
-{
+public sealed class FuelFlow {
     private readonly Aircraft _aircraft;
     private readonly Engine _engine;
     private readonly string _engineType;
@@ -19,12 +18,10 @@ public sealed class FuelFlow
     private readonly Drag _drag;
     private readonly Func<double, double> _fuelModel; // maps thrust ratio -> kg/s
 
-    public FuelFlow(string ac, string? eng = null, bool useSynonym = false)
-    {
+    public FuelFlow(string ac, string? eng = null, bool useSynonym = false) {
         _aircraft = Prop.Aircraft(ac, useSynonym);
 
-        if (string.IsNullOrWhiteSpace(eng))
-        {
+        if (string.IsNullOrWhiteSpace(eng)) {
             eng = _aircraft.Engine?.Default
                   ?? throw new InvalidOperationException(
                       $"Default engine not specified for aircraft {ac}.");
@@ -39,8 +36,7 @@ public sealed class FuelFlow
         _fuelModel = LoadFuelModel(ac, useSynonym);
     }
 
-    private Func<double, double> LoadFuelModel(string ac, bool useSynonym)
-    {
+    private Func<double, double> LoadFuelModel(string ac, bool useSynonym) {
         var fuelFile = OpenApDataPathResolver.GetPath("fuel", "fuel_models.csv");
         using var reader = new StreamReader(fuelFile);
         using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
@@ -58,19 +54,15 @@ public sealed class FuelFlow
 
         var scale = 1.0;
 
-        if (string.Equals(model.TypeCode, "default", StringComparison.OrdinalIgnoreCase))
-        {
+        if (string.Equals(model.TypeCode, "default", StringComparison.OrdinalIgnoreCase)) {
             scale = _engine.FfTo;
-        }
-        else if (!string.Equals(_engineType, model.EngineType, StringComparison.OrdinalIgnoreCase))
-        {
+        } else if (!string.Equals(_engineType, model.EngineType, StringComparison.OrdinalIgnoreCase)) {
             var refEng = Prop.Engine(model.EngineType);
             scale = _engine.FfTo / refEng.FfTo;
         }
 
         // Python: lambda x: c1 - exp(-c2 * (x * exp(c3 * x) - log(c1) / c2)) * scale
-        return x =>
-        {
+        return x => {
             var inner = x * Math.Exp(c3 * x) - Math.Log(c1) / c2;
             var val = c1 - Math.Exp(-c2 * inner) * scale;
             return val;
@@ -80,8 +72,7 @@ public sealed class FuelFlow
     /// <summary>
     /// Fuel flow at a given total thrust (all engines), kg/s.
     /// </summary>
-    public double AtThrust(double totalThrustNewton, bool limit = true)
-    {
+    public double AtThrust(double totalThrustNewton, bool limit = true) {
         var maxEngThrust = _engine.MaxThrust;
         var nEng = _aircraft.Engine?.Number ?? 1;
 
@@ -99,8 +90,7 @@ public sealed class FuelFlow
     /// <summary>
     /// Fuel flow at takeoff, given TAS (kt), altitude (ft), and throttle (0-1), kg/s.
     /// </summary>
-    public double Takeoff(double tasKnots, double altitudeFeet = 0, double throttle = 1.0)
-    {
+    public double Takeoff(double tasKnots, double altitudeFeet = 0, double throttle = 1.0) {
         var Tmax = _thrust.Takeoff(tasKnots, altitudeFeet);
         var fuelflow = throttle * AtThrust(Tmax);
         return fuelflow;
@@ -116,14 +106,12 @@ public sealed class FuelFlow
         double altitudeFeet,
         double verticalSpeedFpm = 0,
         double accelerationMs2 = 0,
-        bool limit = true)
-    {
+        bool limit = true) {
         var D = _drag.Clean(massKg, tasKnots, altitudeFeet, verticalSpeedFpm);
 
         var gamma = Math.Atan2(verticalSpeedFpm * Aero.Fpm, tasKnots * Aero.Kts);
 
-        if (limit)
-        {
+        if (limit) {
             // limit gamma to about +/-10 degrees (~0.175 rad, same as Python)
             gamma = Math.Clamp(gamma, -0.175, 0.175);
 
@@ -133,8 +121,7 @@ public sealed class FuelFlow
 
         var T = D + massKg * 9.81 * Math.Sin(gamma) + massKg * accelerationMs2;
 
-        if (limit)
-        {
+        if (limit) {
             var TMax = _thrust.Climb(tasKnots, altitudeFeet, rateOfClimbFpm: 0);
             var TIdle = _thrust.DescentIdle(tasKnots, altitudeFeet);
 
@@ -149,8 +136,7 @@ public sealed class FuelFlow
     }
 }
 
-internal sealed class FuelModelRecord
-{
+internal sealed class FuelModelRecord {
     [Name("typecode")]
     public string TypeCode { get; set; } = string.Empty;
 

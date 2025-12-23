@@ -2,11 +2,9 @@ using NUnit.Framework;
 
 namespace OpenApSharp.Test;
 
-public class DragTests
-{
+public class DragTests {
     [Test]
-    public void Clean_ReturnsPositiveDrag_ForTypicalConditions()
-    {
+    public void Clean_ReturnsPositiveDrag_ForTypicalConditions() {
         var drag = new Drag("A320");
 
         var D1 = drag.Clean(massKg: 60000, tasKnots: 200, altitudeFeet: 20000);
@@ -17,8 +15,7 @@ public class DragTests
     }
 
     [Test]
-    public void NonClean_IncreasesDrag_WithFlapsAndGear()
-    {
+    public void NonClean_IncreasesDrag_WithFlapsAndGear() {
         var drag = new Drag("A320");
 
         var clean = drag.Clean(massKg: 60000, tasKnots: 150, altitudeFeet: 1000);
@@ -34,6 +31,14 @@ public class DragTests
         Assert.That(flapOnly, Is.GreaterThan(0));
         Assert.That(flapGear, Is.GreaterThan(0));
     }
+
+    [Test]
+    public void Synonym_Works() {
+        var drag = new Drag("AT76", useSynonym: true);
+
+        Assert.That(drag.AircraftCode, Is.EqualTo("AT76"));
+    }
+
 }
 
 

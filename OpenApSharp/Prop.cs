@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -6,6 +7,7 @@ using System.Linq;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -14,8 +16,7 @@ namespace OpenApSharp;
 /// <summary>
 /// C# equivalent of openap.prop: provides access to aircraft and engine data.
 /// </summary>
-public static class Prop
-{
+public static class Prop {
     private static readonly IDeserializer YamlDeserializer =
         new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
@@ -25,8 +26,7 @@ public static class Prop
     private static readonly Lazy<IReadOnlyList<EngineRecord>> Engines =
         new(LoadEngines);
 
-    public static Aircraft Aircraft(string ac, bool useSynonym = false)
-    {
+    public static Aircraft Aircraft(string ac, bool useSynonym = false) {
         if (string.IsNullOrWhiteSpace(ac))
             throw new ArgumentException("Aircraft ICAO code must be provided.", nameof(ac));
 
@@ -37,25 +37,21 @@ public static class Prop
 
         var yamlFile = Directory.GetFiles(aircraftDir, $"{ac}.yml").FirstOrDefault();
 
-        if (yamlFile is null)
-        {
-            if (!useSynonym || !File.Exists(synonymFile))
-            {
+        if (yamlFile is null) {
+            if (!useSynonym || !File.Exists(synonymFile)) {
                 throw new InvalidOperationException(
                     $"Aircraft {ac} not available. Enable 'useSynonym' to search synonyms.");
             }
 
             using var reader = new StreamReader(synonymFile);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) {
+                PrepareHeaderForMatch = args => args.Header.ToLower()
+            });
             var synonyms = csv.GetRecords<AircraftSynonym>().ToList();
             var match = synonyms.FirstOrDefault(s =>
-                string.Equals(s.Orig, ac, StringComparison.OrdinalIgnoreCase));
-
-            if (match is null)
-            {
-                throw new InvalidOperationException(
+                string.Equals(s.Orig, ac, StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException(
                     $"Aircraft {ac} not available, and no synonym found.");
-            }
 
             yamlFile = Directory.GetFiles(aircraftDir, $"{match.New}.yml").FirstOrDefault()
                        ?? throw new InvalidOperationException(
@@ -66,8 +62,7 @@ public static class Prop
         var aircraft = YamlDeserializer.Deserialize<Aircraft>(yaml);
 
         // Build limits section for compatibility with Python
-        aircraft.Limits ??= new AircraftLimits
-        {
+        aircraft.Limits ??= new AircraftLimits {
             MTOW = aircraft.Mtow,
             MLW = aircraft.Mlw,
             OEW = aircraft.Oew,
@@ -80,8 +75,7 @@ public static class Prop
         return aircraft;
     }
 
-    public static Engine Engine(string eng)
-    {
+    public static Engine Engine(string eng) {
         if (string.IsNullOrWhiteSpace(eng))
             throw new ArgumentException("Engine name must be provided.", nameof(eng));
 
@@ -100,27 +94,22 @@ public static class Prop
 
         // Compute fuel_ch as in Python for completeness (not yet used by thrust).
         double fuelCh;
-        if (record.CruiseSfc.HasValue && !double.IsNaN(record.CruiseSfc.Value))
-        {
+        if (record.CruiseSfc.HasValue && !double.IsNaN(record.CruiseSfc.Value)) {
             var sfcCr = record.CruiseSfc.Value;
             var sfcTo = record.FfTo / (record.MaxThrust / 1000.0);
             fuelCh = Math.Round(
                 (sfcCr - sfcTo) / (record.CruiseAlt.GetValueOrDefault() * Aero.Ft), 8);
-        }
-        else
-        {
+        } else {
             fuelCh = 6.7e-7;
         }
 
         return new Engine(record, eng, fuelCh);
     }
 
-    private static IReadOnlyList<EngineRecord> LoadEngines()
-    {
+    private static IReadOnlyList<EngineRecord> LoadEngines() {
         var engineFile = OpenApDataPathResolver.GetPath("engine", "engines.csv");
         using var reader = new StreamReader(engineFile);
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture) {
             HasHeaderRecord = true,
             MissingFieldFound = null,
             BadDataFound = null
@@ -130,14 +119,12 @@ public static class Prop
     }
 }
 
-internal sealed class AircraftSynonym
-{
+internal sealed class AircraftSynonym {
     public string Orig { get; set; } = string.Empty;
     public string New { get; set; } = string.Empty;
 }
 
-public sealed class Aircraft
-{
+public sealed class Aircraft {
     // Top-level scalar fields from YAML
     public string? AircraftName { get; set; }  // mapped from "aircraft"
     public double? Mtow { get; set; }
@@ -154,8 +141,7 @@ public sealed class Aircraft
     public AircraftLimits? Limits { get; set; }
 }
 
-public sealed class Wing
-{
+public sealed class Wing {
     public double Area { get; set; }
     public double Span { get; set; }
     public double Mac { get; set; }
@@ -163,24 +149,60 @@ public sealed class Wing
     public double? T_C { get; set; } // maps from "t/c"
 }
 
-public sealed class Cruise
-{
+public sealed class Cruise {
     public double Height { get; set; }
     public double Mach { get; set; }
     public double Range { get; set; }
 }
 
-public sealed class EngineInstallation
-{
+public sealed class EngineInstallation {
     public string? Type { get; set; }
     public string? Mount { get; set; }
     public int Number { get; set; }
     public string? Default { get; set; }
-    public Dictionary<string, string>? Options { get; set; }
+    // YAML provides either a mapping (variant -> engine) or a simple list; accept both.
+    public FlexibleMapOrSequence? Options { get; set; }
+
+    public string[] GetOptionValues() {
+        var raw = Options?.Value;
+        if (raw is null)
+            return Array.Empty<string>();
+
+        switch (raw) {
+            case IDictionary dict:
+                return dict.Values
+                    .Cast<object>()
+                    .Select(v => v?.ToString() ?? string.Empty)
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                    .ToArray();
+            case IEnumerable<object> seq:
+                return seq
+                    .Select(v => v?.ToString() ?? string.Empty)
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                    .ToArray();
+            default:
+                var single = raw.ToString() ?? string.Empty;
+                return string.IsNullOrWhiteSpace(single) ? Array.Empty<string>() : new[] { single };
+        }
+    }
 }
 
-public sealed class AircraftLimits
-{
+/// <summary>
+/// Helper that lets YamlDotNet accept either a mapping or a sequence for a node.
+/// </summary>
+public sealed class FlexibleMapOrSequence : IYamlConvertible {
+    public object? Value { get; private set; }
+
+    public void Read(YamlDotNet.Core.IParser parser, Type expectedType, ObjectDeserializer nestedObjectDeserializer) {
+        Value = nestedObjectDeserializer(typeof(object));
+    }
+
+    public void Write(IEmitter emitter, ObjectSerializer nestedObjectSerializer) {
+        nestedObjectSerializer(Value);
+    }
+}
+
+public sealed class AircraftLimits {
     public double? MTOW { get; set; }
     public double? MLW { get; set; }
     public double? OEW { get; set; }
@@ -190,8 +212,7 @@ public sealed class AircraftLimits
     public double? Ceiling { get; set; }
 }
 
-internal sealed class EngineRecord
-{
+internal sealed class EngineRecord {
     // Core performance fields
     [Name("name")]
     public string? Name { get; set; }
@@ -265,8 +286,7 @@ internal sealed class EngineRecord
     public double EiHcIdl { get; set; }
 }
 
-public sealed class Engine
-{
+public sealed class Engine {
     public string Name { get; set; } = string.Empty;
     public double Bpr { get; set; }
     public double MaxThrust { get; set; }
@@ -298,8 +318,7 @@ public sealed class Engine
 
     private readonly EngineRecord _record;
 
-    internal Engine(EngineRecord record, string name, double fuelCh)
-    {
+    internal Engine(EngineRecord record, string name, double fuelCh) {
         _record = record;
         Name = name;
         Bpr = record.Bpr;
