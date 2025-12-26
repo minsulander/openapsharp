@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using CsvHelper;
+using CsvHelper.Configuration;
 
 namespace OpenApSharp;
 
@@ -34,7 +35,9 @@ public sealed class Wrap {
                 throw new ArgumentException($"Kinematic model for {ac} not available.");
 
             using var reader = new StreamReader(synonymPath);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) {
+                PrepareHeaderForMatch = args => args.Header.ToLower()
+            });
             var synonyms = csv.GetRecords<AircraftSynonym>().ToList();
             var match = synonyms.FirstOrDefault(s =>
                 string.Equals(s.Orig, code, StringComparison.OrdinalIgnoreCase));
@@ -205,6 +208,14 @@ public readonly struct WrapParameter {
         Maximum = maximum;
         StatisticalModel = statisticalModel;
         StatisticalModelParameters = statisticalModelParameters;
+    }
+
+    public override string ToString() {
+        return $"Default: {Default}\n" +
+               $"  Minimum: {Minimum}\n" +
+               $"  Maximum: {Maximum}\n" +
+               $"  Model:   {StatisticalModel}\n" +
+               $"  Params:  {string.Join("|", StatisticalModelParameters)}";
     }
 }
 

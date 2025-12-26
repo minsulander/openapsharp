@@ -20,11 +20,7 @@ public class WrapTests {
             var value = (WrapParameter)prop.GetValue(wrap)!;
 
             Console.WriteLine($"{prop.Name}:");
-            Console.WriteLine($"  Default: {value.Default}");
-            Console.WriteLine($"  Minimum: {value.Minimum}");
-            Console.WriteLine($"  Maximum: {value.Maximum}");
-            Console.WriteLine($"  Model:   {value.StatisticalModel}");
-            Console.WriteLine($"  Params:  {string.Join("|", value.StatisticalModelParameters)}");
+            Console.WriteLine(value.ToString());
             Console.WriteLine();
         }
 

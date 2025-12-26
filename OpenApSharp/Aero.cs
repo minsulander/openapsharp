@@ -58,6 +58,15 @@ public static class Aero {
         var a = SoundSpeed(h, dT);
         return mach * a;
     }
+    public static double CasToTas(double vCas, double h, double dT = 0) {
+        var (p, rho, _) = Atmos(h, dT);
+        var qdyn = P0 * (Math.Pow(1.0 + Rho0 * vCas * vCas / (7.0 * P0), 3.5) - 1.0);
+        var vTas = Math.Sqrt(7.0 * p / rho * (Math.Pow(1.0 + qdyn / p, 2.0 / 7.0) - 1.0));
+        return vTas;
+    }
+    
+    public static double CasToTasFromKnots(double casKnots, double altitudeFeet)
+        => CasToTas(casKnots * Kts, altitudeFeet * Ft);
 
     public static double TasToCas(double vTas, double h, double dT = 0) {
         var (p, rho, _) = Atmos(h, dT);
