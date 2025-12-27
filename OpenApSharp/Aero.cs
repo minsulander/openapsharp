@@ -9,19 +9,20 @@ namespace OpenApSharp;
 /// </summary>
 public static class Aero {
     // Unit conversion factors
-    public const double Kts = 0.514444;   // knot -> m/s
-    public const double Ft = 0.3048;      // ft -> m
-    public const double Fpm = 0.00508;    // ft/min -> m/s
+    public const double Kts = 0.514444;         // knot -> m/s
+    public const double Ft = 0.3048;            // ft -> m
+    public const double Fpm = 0.00508;          // ft/min -> m/s
 
     // Constants
-    public const double G0 = 9.80665;     // m/s2
-    public const double R = 287.05287;    // gas constant
-    public const double P0 = 101325.0;    // sea-level pressure (Pa)
-    public const double Rho0 = 1.225;     // sea-level density (kg/m3)
-    public const double T0 = 288.15;      // sea-level temperature (K)
-    public const double Gamma = 1.40;     // cp/cv for air
-    public const double Beta = -0.0065;   // ISA temp gradient below tropopause
-    public const double A0 = 340.293988;  // sea-level speed of sound
+    public const double G0 = 9.80665;           // m/s2
+    public const double R = 287.05287;          // gas constant
+    public const double P0 = 101325.0;          // sea-level pressure (Pa)
+    public const double Rho0 = 1.225;           // sea-level density (kg/m3)
+    public const double T0 = 288.15;            // sea-level temperature (K)
+    public const double Gamma = 1.40;           // cp/cv for air
+    public const double Beta = -0.0065;         // ISA temp gradient below tropopause
+    public const double Rearth = 6371000.0;     // m, average earth radius
+    public const double A0 = 340.293988;        // sea-level speed of sound
 
     /// <summary>
     /// Returns (pressure, density, temperature) at altitude h (meters) with optional delta-T.
